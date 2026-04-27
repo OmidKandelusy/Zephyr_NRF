@@ -31,5 +31,37 @@
  Now the image package is ready to be flashed to the dongle. Press the reset button to put the dongle into the dfu mode as described [here](https://academy.nordicsemi.com/flash-instructions-for-nrf52840-dongle/). Finally, flash the the image using the nrfutil by the following command
 >  nrfutil device program --firmware app.zip --traits nordicDfu
 
-## Custom Script
-To facilitate this process, I have created a script which does all the steps sequentially from a clean build by west to flashing the program package onto the dongle. You get inspiration or directly use it if you are using the same type of dongle.
+**Custom Script**
+    To facilitate this process, I have created a script which does all the steps sequentially from a clean build by west to flashing the program package onto the dongle. You get inspiration or directly use it if you are using the same type of dongle.
+
+
+# Zephyr RTOS Build System
+
+This segment covers the Zephyr RTOS build system architecture, specifically how
+CMake, Kconfig, West, and Ninja interact to produce a firmware binary. Particulary, the building workflow can be summarized as follows:
+
+When you run west build, West first invokes CMake, which starts executing your app's CMakeLists.txt. That file calls find_package(Zephyr), which loads ZephyrConfig.cmake, which in turn pulls in Zephyr's root CMakeLists.txt. That root file calls include(kconfig.cmake) — a Zephyr-written CMake module whose sole job is to orchestrate the Kconfig process. kconfig.cmake uses CMake's execute_process to invoke kconfig.py, a Python script that uses the kconfiglib library to parse all the Kconfig files across the Zephyr tree, merge them with your prj.conf selections, resolve all dependencies, and generate three output files: .config, autoconf.h, and config.cmake. CMake then loads config.cmake back in so all CONFIG_* variables are available, and the rest of the CMakeLists.txt tree continues executing with full Kconfig awareness — gating which source files and subdirectories get included in the build. Once CMake finishes, it generates a build.ninja file, and West then invokes Ninja, which reads that file, calls the ARM GCC toolchain, and produces the final zephyr.elf and zephyr.hex binaries.
+
+
+**1) west build is invoked** this is the entry point. It initializes the build directory and then calls CMake, passing along the selected board, toolchain, and application path.
+
+**2)CMake configuration phase starts**
+CMake sets up the build environment by locating the Zephyr base, selecting the correct toolchain, and loading board-specific settings. This is where the overall build configuration begins to take shape.
+
+**3)Processing CMakeLists.txt files**
+CMake walks through the build scripts starting from the application, then any included modules, and finally Zephyr’s root CMakeLists.txt. During this step, it defines which source files, libraries, and build targets will be part of the final build.
+
+**4)Kconfig execution (configuration resolution)**
+as part of the CMake phase, Kconfig is executed via kconfig.py. It merges configuration inputs such as prj.conf, the board’s default configuration, and Kconfig defaults and dependencies. The result is written to .config (a human-readable configuration file) and autoconf.h (the same configuration expressed as C macros for the compiler).
+
+**5)DeviceTree processing (hardware description)**
+during the CMake phase, DeviceTree files are processed as well. This includes the board’s .dts, SoC .dtsi files, and any application overlays. These are merged into a final zephyr.dts and compiled into devicetree_generated.h, which provides hardware definitions to the code.
+
+**6)Configuration convergence**
+at this point, the system has both the software configuration (.config) and the hardware description (DeviceTree). A feature or driver is only included if it is enabled in Kconfig and the corresponding hardware is present and enabled in the DeviceTree.
+
+Build system generation
+Once configuration is complete, CMake generates the Ninja build files (build.ninja), which contain all the rules needed to compile the project.
+Build phase (ninja)
+Finally, Ninja compiles the source code using the generated configuration headers (autoconf.h) and hardware definitions (devicetree_generated.h). This produces the final firmware outputs such as ELF and binary images.
+
