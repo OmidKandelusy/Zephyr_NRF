@@ -7,10 +7,7 @@
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/bluetooth/gatt.h>
 
-
-/* Custom Service Variables */
-#define BT_UUID_CUSTOM_SERVICE_VAL \
-	BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)
+#include "common.h"
 
 static const struct bt_uuid_128 vnd_uuid = BT_UUID_INIT_128(
 	BT_UUID_CUSTOM_SERVICE_VAL);
@@ -89,9 +86,6 @@ static const struct bt_uuid_128 vnd_long_uuid = BT_UUID_INIT_128(
 	BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef3));
 
 
-
-
-
 static const struct bt_uuid_128 vnd_write_cmd_uuid = BT_UUID_INIT_128(
 	BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef4));
 
@@ -128,8 +122,6 @@ BT_GATT_SERVICE_DEFINE(vnd_svc,
 			       BT_GATT_PERM_READ_ENCRYPT |
 			       BT_GATT_PERM_WRITE_ENCRYPT,
 			       read_vnd, write_vnd, vnd_value),
-	BT_GATT_CCC(vnd_ccc_cfg_changed,
-		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE_ENCRYPT),
 	BT_GATT_CHARACTERISTIC(&vnd_auth_uuid.uuid,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE,
 			       BT_GATT_PERM_READ_AUTHEN |
@@ -140,7 +132,6 @@ BT_GATT_SERVICE_DEFINE(vnd_svc,
 			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE |
 			       BT_GATT_PERM_PREPARE_WRITE,
 			       read_vnd, write_long_vnd, &vnd_long_value),
-	BT_GATT_CEP(&vnd_long_cep),
 	BT_GATT_CHARACTERISTIC(&vnd_write_cmd_uuid.uuid,
 			       BT_GATT_CHRC_WRITE_WITHOUT_RESP,
 			       BT_GATT_PERM_WRITE, NULL,
@@ -159,5 +150,6 @@ static struct bt_gatt_cb gatt_callbacks = {
 	.att_mtu_updated = mtu_updated
 };
 
-
-bt_gatt_cb_register(&gatt_callbacks);
+void ble_service_init(void){
+	bt_gatt_cb_register(&gatt_callbacks);
+}

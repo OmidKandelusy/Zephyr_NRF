@@ -7,8 +7,12 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/hci.h>
+#include <zephyr/bluetooth/uuid.h>
 
 #include <zephyr/sys/printk.h>
+
+
+#include "common.h"
 
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -63,9 +67,19 @@ static struct bt_conn_auth_cb auth_cb_display = {
 };
 
 
-static void bt_ready(void)
-{
+
+
+
+
+int bluetooth_init(void){
+
 	int err;
+	err = bt_enable(NULL);
+	if (err != 0) {
+		printk("Bluetooth init failed (err %d)\n", err);
+		return 0;
+	}
+
 
 	printk("Bluetooth initialized\n");
 
@@ -73,22 +87,15 @@ static void bt_ready(void)
 		settings_load();
 	}
 
+	bt_conn_auth_cb_register(&auth_cb_display);
+
 	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
 	if (err) {
 		printk("Advertising failed to start (err %d)\n", err);
-		return;
+		return err;
 	}
 
 	printk("Advertising successfully started\n");
+
+	return err;
 }
-
-bt_conn_auth_cb_register(&auth_cb_display);
-
-
-err = bt_enable(NULL);
-if (err != 0) {
-    printk("Bluetooth init failed (err %d)\n", err);
-    return 0;
-}
-
-bt_ready();
