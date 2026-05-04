@@ -139,8 +139,6 @@ BT_GATT_SERVICE_DEFINE(vnd_svc,
 );
 
 
-
-
 void mtu_updated(struct bt_conn *conn, uint16_t tx, uint16_t rx)
 {
 	printk("Updated MTU: TX: %d RX: %d bytes\n", tx, rx);
